@@ -1,0 +1,15 @@
+{
+  "name": "yolo-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "YOLO 实时检测桌面端 (Electron)",
+  "main": "main.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0"
+  }
+}

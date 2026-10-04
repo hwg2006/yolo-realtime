@@ -1,0 +1,44 @@
+# ---------- Python ----------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---------- 模型权重与导出产物（体积大，可由脚本重新生成）----------
+*.pt
+*.onnx
+*.engine
+*.torchscript
+
+# ---------- 工具链与缓存（本机环境，不入库）----------
+.tools/
+.ultralytics/
+
+# ---------- 数据集（可自动下载，仅保留 yaml 配置）----------
+datasets/coco128/
+
+# ---------- 训练 / 推理输出 ----------
+runs/detect/
+runs/train/**/weights/
+runs/**/*.mp4
+
+# ---------- 日志与临时文件 ----------
+*.log
+*.part
+*.tmp
+
+# ---------- Node / 前端 ----------
+node_modules/
+web/dist/
+dist/
+.vite/
+
+# ---------- Rust ----------
+inference_rust/target/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

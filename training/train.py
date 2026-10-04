@@ -31,6 +31,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    # 切到仓库根目录，保证 coco128.yaml 中的相对数据集路径稳定解析
+    os.chdir(ROOT)
     args = parse_args()
 
     model = YOLO(args.model)

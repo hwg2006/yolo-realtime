@@ -1,7 +1,7 @@
 # COCO128 本地数据集配置（已离线下载，避免训练时联网拉取）
 # 数据集目录: <repo>/datasets/coco128
 
-path: c:/Users/24396/Desktop/yolo/datasets/coco128 # dataset root dir (absolute)
+path: datasets/coco128 # dataset root（相对仓库根目录解析）
 train: images/train2017 # 128 images
 val: images/train2017 # 128 images
 test:

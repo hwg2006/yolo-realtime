@@ -1,4 +1,4 @@
-"""把训练好的 .pt 权重导出为 ONNX，供 Rust / Python(onxxruntime) / 后端服务使用。
+"""把训练好的 .pt 权重导出为 ONNX，供 Rust / Python(onnxruntime) / 后端服务使用。
 
 用法:
     python training/export_onnx.py --weights runs/train/coco128_yolo11n/weights/best.pt
@@ -49,7 +49,7 @@ def main() -> None:
     print(f"已复制到: {dst}")
 
     # 关键信息提示后续使用
-    print(f"输入尺寸: {args.imgsz}x{args.imgsz}, 输出为 [1, 4+nc, 8400] 形式")
+    print(f"输入尺寸: {args.imgsz}x{args.imgsz}, 输出为 [1, 4+nc, 3549] 形式（imgsz=416, nc=80 → 84 通道）")
 
 
 if __name__ == "__main__":

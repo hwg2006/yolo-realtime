@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "YOLO11n 实时推理（Rust + ONNX Runtime），用于对比/优化 Python 版本性能"
 
+[lib]
+name = "yolo_infer"
+path = "src/lib.rs"
+
 [[bin]]
 name = "yolo-infer"
 path = "src/main.rs"

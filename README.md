@@ -120,22 +120,38 @@ flowchart LR
 
 ```
 yolo/
-├─ training/             # 训练与导出
-│  ├─ train.py           #   COCO128 上训练 YOLO11n
-│  └─ export_onnx.py     #   导出 ONNX 到 models/
-├─ inference_python/     # Python 快速推理（摄像头/视频/图片）
+├─ training/                 # 训练与导出
+│  ├─ train.py               #   COCO128 上训练 YOLO11n
+│  └─ export_onnx.py         #   导出 ONNX 到 models/
+├─ inference_python/         # Python 快速推理（摄像头/视频/图片）
 │  └─ realtime.py
-├─ inference_rust/       # Rust 原生推理（ort + image）
-│  ├─ Cargo.toml
-│  └─ src/main.rs        #   image / dir / bench / camera 子命令
-├─ server/               # FastAPI 推理服务（HTTP + WebSocket）
-│  └─ app.py
-├─ web/                  # Vue3 + Vite 前端（摄像头实时画框）
-├─ desktop/              # Electron 桌面端（内嵌 web/dist）
-├─ models/               # 导出的 ONNX（.gitignore，需自行生成）
-├─ datasets/             # coco128.yaml（图片数据 .gitignore，可自动下载）
-├─ runs/                 # 训练/推理输出（权重与演示帧 .gitignore）
-└─ ENGINEERING_LOG.md    # 工程日志
+├─ inference_rust/           # Rust 原生推理（ort + image）
+│  ├─ Cargo.toml             #   [lib] yolo_infer + [[bin]] yolo-infer
+│  └─ src/
+│     ├─ lib.rs              #   库入口，re-export 各模块
+│     ├─ main.rs             #   CLI 装配（image / dir / bench / camera 子命令）
+│     ├─ types.rs            #   类别名、Detection / Timings 数据结构
+│     ├─ paths.rs            #   模型与输入输出路径解析
+│     ├─ preprocess.rs       #   letterbox 预处理
+│     ├─ postprocess.rs      #   解码 + NMS
+│     ├─ draw.rs             #   画框 / 写标签
+│     └─ detector.rs         #   Detector：ONNX session 封装
+├─ server/                   # FastAPI 推理服务（HTTP + WebSocket）
+│  ├─ app.py                 #   create_app 组装（CORS / 路由 / 启动钩子）
+│  ├─ routes.py              #   /api/health、/api/detect、/ws/detect
+│  ├─ detector.py            #   Detector 单例与加载
+│  ├─ schemas.py             #   请求 / 响应契约
+│  └─ config.py              #   常量、CORS 白名单、权重解析
+├─ web/                      # Vue3 + Vite 前端（摄像头实时画框）
+│  └─ src/
+│     ├─ api.js              #   唯一通信入口（HTTP + WebSocket）
+│     ├─ App.vue             #   UI 组织与订阅
+│     └─ composables/        #   采集+WS 订阅 / 画框坐标换算
+├─ desktop/                  # Electron 桌面端（内嵌 web/dist）
+├─ models/                   # 导出的 ONNX（.gitignore，需自行生成）
+├─ datasets/                 # coco128.yaml（图片数据 .gitignore，可自动下载）
+├─ runs/                     # 训练/推理输出（权重与演示帧 .gitignore）
+└─ ENGINEERING_LOG.md        # 工程日志
 ```
 
 ---

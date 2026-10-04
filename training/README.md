@@ -16,4 +16,4 @@ python training/export_onnx.py --weights runs/train/coco128_yolo11n/weights/best
 
 - 产物：`runs/train/coco128_yolo11n/weights/best.pt`、`models/yolo11n_coco128.onnx`
 - 依赖：`ultralytics`（含 `torch`，CPU 版）
-- 脚本会在导入 `ultralytics` 前把 `YOLO_CONFIG_DIR` 重定向到工作区内，避免写入用户目录。
+- 脚本会在导入 `ultralytics` 前，通过根目录 `project_config.py` 把 `YOLO_CONFIG_DIR` 重定向到工作区内，避免写入用户目录。

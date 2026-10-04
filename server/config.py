@@ -1,16 +1,11 @@
-"""服务配置：路径解析与默认推理参数。"""
+"""服务配置：默认推理参数与 CORS 白名单。
+
+路径与权重解析统一由仓库根目录的 `project_config.py` 提供。
+"""
 
 from __future__ import annotations
 
 import os
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parent.parent
-# 让 ultralytics 的配置/字体缓存落在工作区内（与训练脚本保持一致）
-os.environ.setdefault("YOLO_CONFIG_DIR", str(ROOT / ".ultralytics"))
-
-DEFAULT_PT = ROOT / "runs" / "train" / "coco128_yolo11n" / "weights" / "best.pt"
-DEFAULT_ONNX = ROOT / "models" / "yolo11n_coco128.onnx"
 
 IMGSZ = 416
 CONF = 0.25
@@ -31,12 +26,3 @@ def allowed_origins() -> list[str]:
 
 
 ALLOWED_ORIGINS = allowed_origins()
-
-
-def resolve_weights() -> str:
-    """按优先级选择权重：ONNX > 训练产出的 .pt > ultralytics 默认权重。"""
-    if DEFAULT_ONNX.exists():
-        return str(DEFAULT_ONNX)
-    if DEFAULT_PT.exists():
-        return str(DEFAULT_PT)
-    return "yolo11n.pt"

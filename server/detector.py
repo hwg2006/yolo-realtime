@@ -6,7 +6,9 @@ import time
 
 import numpy as np
 
-from .config import CONF, IMGSZ, resolve_weights
+from project_config import weights_by_priority
+
+from .config import CONF, IMGSZ
 from .schemas import Detection
 
 
@@ -57,7 +59,7 @@ def load_detector() -> Detector:
     """加载（或复用）全局检测器实例，供服务启动时调用。"""
     global _service
     if _service is None:
-        weights = resolve_weights()
+        weights = weights_by_priority()
         print(f"[server] loading model: {weights}")
         _service = Detector(weights)
         print(f"[server] model ready, {len(_service.names)} classes")

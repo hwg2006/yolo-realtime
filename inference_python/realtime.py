@@ -10,16 +10,15 @@
 """
 
 import argparse
-import os
+import sys
 import time
 from pathlib import Path
 
 import cv2
 
-ROOT = Path(__file__).resolve().parent.parent
-os.environ.setdefault("YOLO_CONFIG_DIR", str(ROOT / ".ultralytics"))
-DEFAULT_PT = ROOT / "runs" / "train" / "coco128_yolo11n" / "weights" / "best.pt"
-DEFAULT_ONNX = ROOT / "models" / "yolo11n_coco128.onnx"
+# 以文件方式运行时 sys.path 首项是脚本目录，先补上仓库根目录再导入共享配置
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from project_config import DEFAULT_ONNX, DEFAULT_PT  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

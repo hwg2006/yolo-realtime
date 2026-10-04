@@ -14,7 +14,7 @@
 | [routes.py](./routes.py) | HTTP / WebSocket 路由：只做请求解析与响应封装 |
 | [detector.py](./detector.py) | `Detector` 封装与全局单例的加载 / 获取 |
 | [schemas.py](./schemas.py) | 前后端共享的响应数据模型 |
-| [config.py](./config.py) | 路径解析与默认推理参数 |
+| [config.py](./config.py) | 默认推理参数与 CORS 白名单（路径 / 权重解析见根目录 `project_config.py`） |
 
 ## 运行
 

@@ -4,13 +4,25 @@
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000'
 
+/** 归一化单个检测框：逐项取值并补默认值，前端只依赖这里定义的字段。 */
+function normalizeDetection(raw) {
+  const box = Array.isArray(raw?.xyxy) ? raw.xyxy : []
+  return {
+    cls: Number(raw?.cls ?? -1),
+    label: raw?.label ?? '',
+    conf: Number(raw?.conf ?? 0),
+    xyxy: [0, 1, 2, 3].map((i) => Number(box[i] ?? 0)),
+  }
+}
+
 /** 把后端原始结果归一化为前端统一结构。 */
 export function normalizeResult(payload) {
+  const detections = Array.isArray(payload?.detections) ? payload.detections : []
   return {
-    width: payload?.width || 0,
-    height: payload?.height || 0,
-    inferMs: payload?.infer_ms || 0,
-    detections: payload?.detections || [],
+    width: Number(payload?.width) || 0,
+    height: Number(payload?.height) || 0,
+    inferMs: Number(payload?.infer_ms) || 0,
+    detections: detections.map(normalizeDetection),
   }
 }
 

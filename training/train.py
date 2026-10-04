@@ -8,11 +8,12 @@
 
 import argparse
 import os
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-# 让 ultralytics 的配置/字体缓存落在工作区内，避免写入 AppData 被沙箱拦截
-os.environ.setdefault("YOLO_CONFIG_DIR", str(ROOT / ".ultralytics"))
+# 以文件方式运行时 sys.path 首项是脚本目录，先补上仓库根目录再导入共享配置
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from project_config import ROOT  # noqa: E402
 
 from ultralytics import YOLO  # noqa: E402
 

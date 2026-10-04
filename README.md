@@ -120,6 +120,7 @@ flowchart LR
 
 ```
 yolo/
+├─ project_config.py         # 仓库路径 / YOLO_CONFIG_DIR / 权重解析（各入口共用）
 ├─ training/                 # 训练与导出
 │  ├─ train.py               #   COCO128 上训练 YOLO11n
 │  └─ export_onnx.py         #   导出 ONNX 到 models/
@@ -129,7 +130,8 @@ yolo/
 │  ├─ Cargo.toml             #   [lib] yolo_infer + [[bin]] yolo-infer
 │  └─ src/
 │     ├─ lib.rs              #   库入口，re-export 各模块
-│     ├─ main.rs             #   CLI 装配（image / dir / bench / camera 子命令）
+│     ├─ main.rs             #   CLI 解析与模块装配（分发到 commands）
+│     ├─ commands.rs         #   image / dir / bench / camera 子命令编排
 │     ├─ types.rs            #   类别名、Detection / Timings 数据结构
 │     ├─ paths.rs            #   模型与输入输出路径解析
 │     ├─ preprocess.rs       #   letterbox 预处理
@@ -141,7 +143,7 @@ yolo/
 │  ├─ routes.py              #   /api/health、/api/detect、/ws/detect
 │  ├─ detector.py            #   Detector 单例与加载
 │  ├─ schemas.py             #   请求 / 响应契约
-│  └─ config.py              #   常量、CORS 白名单、权重解析
+│  └─ config.py              #   默认推理参数与 CORS 白名单
 ├─ web/                      # Vue3 + Vite 前端（摄像头实时画框）
 │  └─ src/
 │     ├─ api.js              #   唯一通信入口（HTTP + WebSocket）

@@ -10,9 +10,10 @@
 //! 运行时开销，只依赖 ONNX Runtime，单帧延迟更低。
 //!
 //! 模块划分：`types`(数据) / `paths`(路径与环境) / `preprocess`(预处理) /
-//! `postprocess`(后处理) / `draw`(可视化) / `detector`(会话与推理)。
-//! 二进制入口 `main.rs` 只做 CLI 解析与模块组装。
+//! `postprocess`(后处理) / `draw`(可视化) / `detector`(会话与推理) /
+//! `commands`(子命令编排)。二进制入口 `main.rs` 只做 CLI 解析与模块组装。
 
+pub mod commands;
 pub mod detector;
 pub mod draw;
 pub mod paths;

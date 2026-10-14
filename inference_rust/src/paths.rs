@@ -12,12 +12,15 @@ pub fn project_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// 默认 ONNX 模型路径：优先官方 yolo11n（CPU 单帧 ≈55ms，框跟随更及时），最后回退自训练产出。
+/// 默认 ONNX 模型路径：优先官方 YOLO26s（精度更高，CPU 单帧约 90ms），
+/// 其次回退旧版 yolo11n，最后回退自训练产出。
 pub fn default_model() -> PathBuf {
     let models = project_root().join("models");
-    let official = models.join("yolo11n.onnx");
-    if official.exists() {
-        return official;
+    for name in ["yolo26s.onnx", "yolo11n.onnx"] {
+        let p = models.join(name);
+        if p.exists() {
+            return p;
+        }
     }
     models.join("yolo11n_coco128.onnx")
 }

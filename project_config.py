@@ -18,21 +18,32 @@ ROOT = Path(__file__).resolve().parent
 os.environ.setdefault("YOLO_CONFIG_DIR", str(ROOT / ".ultralytics"))
 
 MODELS_DIR = ROOT / "models"
-# 官方 yolo11n 预训练权重（全 COCO 11.8 万张图 / 80 类）：轻量、CPU 单帧 ≈55ms，作为默认
-OFFICIAL_PT = ROOT / "yolo11n.pt"
-OFFICIAL_ONNX = MODELS_DIR / "yolo11n.onnx"
+# 官方 YOLO26s 预训练权重（全 COCO 80 类）：精度显著高于 yolo11n（48.6 vs 39.5 mAP），
+# CPU 单帧约 90ms，作为默认
+OFFICIAL_PT = ROOT / "yolo26s.pt"
+OFFICIAL_ONNX = MODELS_DIR / "yolo26s.onnx"
+# 兜底：旧版官方 yolo11n（未下载 yolo26s 时使用）
+FALLBACK_PT = ROOT / "yolo11n.pt"
+FALLBACK_ONNX = MODELS_DIR / "yolo11n.onnx"
 # 自训练（COCO128 微调）产出，识别能力较弱，仅显式指定时使用
 DEFAULT_PT = ROOT / "runs" / "train" / "coco128_yolo11n" / "weights" / "best.pt"
 DEFAULT_ONNX = MODELS_DIR / "yolo11n_coco128.onnx"
 
 
 def weights_by_priority() -> str:
-    """按优先级选择权重：官方 n（ONNX 优先于 .pt）> 自训练 > ultralytics 默认。
+    """按优先级选择权重：官方 YOLO26s（ONNX 优先于 .pt）> 兜底 yolo11n > 自训练。
 
-    注：官方 yolo11s 识别更强但 CPU 单帧约 175ms（n 版约 55ms），实时框滞后明显，
-    故不作为默认；需要时可通过各入口的 `--weights models/yolo11s.onnx` 显式指定。
+    未下载 yolo26s 时自动回退到已有的 yolo11n，保证服务总能启动；
+    需要指定其它权重时可通过各入口的 `--weights models/yolo11s.onnx` 显式覆盖。
     """
-    for p in (OFFICIAL_ONNX, OFFICIAL_PT, DEFAULT_ONNX, DEFAULT_PT):
+    for p in (
+        OFFICIAL_ONNX,
+        OFFICIAL_PT,
+        FALLBACK_ONNX,
+        FALLBACK_PT,
+        DEFAULT_ONNX,
+        DEFAULT_PT,
+    ):
         if p.exists():
             return str(p)
-    return "yolo11n.pt"
+    return "yolo26s.pt"

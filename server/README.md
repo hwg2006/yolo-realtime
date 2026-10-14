@@ -23,6 +23,6 @@ python -m uvicorn server.app:app --host 127.0.0.1 --port 8000
 ```
 
 - 模型在 `startup` 时加载一次；CPU 推理通过 `asyncio.to_thread` 放入线程池，避免阻塞事件循环
-- 检测参数：`conf` 默认 0.10、NMS `iou` 默认 0.70（可用环境变量 `YOLO_CONF` / `YOLO_IOU` 覆盖）；优先保召回（有人进入画面不漏框），NMS IoU 不再收紧以免把部分重叠的两个人合并成一框；`imgsz` 固定 640、须与 ONNX 导出一致，运行时不可改
+- 检测参数：`conf` 默认 0.25、NMS `iou` 默认 0.70，均为 ultralytics 官方默认值（可用环境变量 `YOLO_CONF` / `YOLO_IOU` 临时覆盖）；`imgsz` 固定 640、须与 ONNX 导出一致，运行时不可改
 - CORS 白名单仅放行本地开发与桌面端来源（Vite `127.0.0.1/localhost:5173` 与 Electron `file://` 的 `Origin: null`），可用 `YOLO_ALLOWED_ORIGINS`（逗号分隔）覆盖
 - 依赖：`fastapi`、`uvicorn[standard]`、`ultralytics`、`opencv-python`、`python-multipart`

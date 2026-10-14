@@ -3,12 +3,12 @@
 仓库把 `*.pt` / `*.onnx` 排除在版本控制外（体积大），因此克隆下来后 `models/` 是空的、
 无法直接推理——在仓库根目录执行本脚本即可补齐：
 
-    python download_weights.py                        # 默认 yolo11n：下载 .pt + 导出 models/yolo11n.onnx @640
-    python download_weights.py --models yolo11n.pt yolo11s.pt
+    python download_weights.py                        # 默认 yolo26s：下载 .pt + 导出 models/yolo26s.onnx @640
+    python download_weights.py --models yolo26m.pt yolo11n.pt
     python download_weights.py --no-onnx              # 只下 .pt，不导出 ONNX
     python download_weights.py --force                # 已存在也重新下载 / 重新导出
 
-权重来源为 ultralytics 官方 GitHub Release，与 `YOLO("yolo11n.pt")` 的自动下载同源。
+权重来源为 ultralytics 官方 GitHub Release，与 `YOLO("yolo26s.pt")` 的自动下载同源。
 导出参数与 `training/export_onnx.py` 保持一致（opset 12 / simplify / dynamic=False）。
 """
 
@@ -32,8 +32,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--models",
         nargs="+",
-        default=["yolo11n.pt"],
-        help="要下载的官方权重文件名，可多个（默认 yolo11n.pt，可选 yolo11s.pt 等）",
+        default=["yolo26s.pt"],
+        help="要下载的官方权重文件名，可多个（默认 yolo26s.pt，可选 yolo26n.pt / yolo11n.pt 等）",
     )
     p.add_argument("--imgsz", type=int, default=640, help="导出 ONNX 的输入尺寸（默认 640）")
     p.add_argument("--opset", type=int, default=12, help="ONNX opset（默认 12）")

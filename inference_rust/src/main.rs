@@ -29,7 +29,7 @@ struct Cli {
     #[arg(long, default_value_t = 0.25)]
     conf: f32,
     /// NMS IoU 阈值
-    #[arg(long, default_value_t = 0.45)]
+    #[arg(long, default_value_t = 0.7)]
     iou: f32,
     /// intra-op 线程数
     #[arg(long, default_value_t = 8)]

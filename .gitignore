@@ -28,12 +28,6 @@ runs/**/*.mp4
 *.part
 *.tmp
 
-# ---------- Node / 前端 ----------
-node_modules/
-web/dist/
-dist/
-.vite/
-
 # ---------- Rust ----------
 inference_rust/target/
 

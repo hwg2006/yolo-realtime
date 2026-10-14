@@ -1,4 +1,4 @@
-# YOLO 实时目标检测：训练 → 多语言推理 → 应用接入
+# YOLO 实时目标检测：训练 → 多语言推理 → 本地摄像头实时画框
 
 一个从零跑通的目标检测工程实践：用 **Ultralytics YOLO11n** 在 COCO128 上完成训练，
 导出 **ONNX** 后分别用 **Python** 与 **Rust** 实现实时推理（推理侧默认采用精度更高的官方 **YOLO26s**）。
@@ -6,8 +6,8 @@
 坐标**一比一、无换算、无偏移**。
 
 > 早期另做过一套 **FastAPI 服务 + Web（Vue3） + 桌面端（Electron）** 的接入方案；因浏览器 canvas
-> 需要按 `object-fit: contain` 做缩放/留白换算，容器比例不一致时检测框会整体偏移，现**降级为可选方案、不再推荐**
-> （代码保留供参考）。
+> 需要按 `object-fit: contain` 做缩放/留白换算，容器比例不一致时检测框会整体偏移，现**已废弃并移除相关代码**
+> （决策过程见 [3.5](#35-为什么最终不做-web回归本地摄像头画框)）。
 >
 > 本文重点记录**项目思路与工程决策**；具体的代码实现细节请直接阅读各模块源码。
 
@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | 1 | 完成一次 Ultralytics 训练 | COCO128 + YOLO11n，纯 CPU 训练 30 epochs，产出 `best.pt` 与 mAP 指标 |
 | 2 | 实时推理部署（Python 快速版 → C++/Rust 优化） | Python 版基于 `ultralytics` 快速跑通；Rust 版基于开源库 `ort`（ONNX Runtime）+ `image` 做原生加速，与 Python 版对照 |
-| 3 | 接入应用（Web + 桌面内嵌） | **主线：本地摄像头实时画框**（`inference_python/realtime.py`，OpenCV 原生窗口直接画框，坐标无偏移）；Web（Vue3）+ 桌面（Electron）方案保留但**标注为可选、不再推荐**（原因见 [3.5](#35-为什么最终不做-web回归本地摄像头画框)） |
+| 3 | 接入应用（Web + 桌面内嵌） | **落定为本地摄像头实时画框**（`inference_python/realtime.py`，OpenCV 原生窗口直接画框，坐标无偏移）；曾实现的 Web（Vue3）+ 桌面（Electron）接入方案因 canvas 坐标偏移**已废弃移除**（原因见 [3.5](#35-为什么最终不做-web回归本地摄像头画框)） |
 
 **贯穿始终的一条主线**：*先跑通、再优化、最后接入应用*。每一步都基于成熟开源库，不重复造轮子。
 
@@ -35,10 +35,8 @@
 | 模型导出 | ONNX（opset 12, simplify）；**官方 `yolo26s` @640** → `models/yolo26s.onnx`（36.5 MB，输入 `[1,3,640,640]`，输出 `[1,84,8400]`）；另有官方 `yolo11n`/`yolo11s` @640 与自训练 @416 作对照 |
 | Python 推理 | 基于 `ultralytics` + `cv2`；`yolo11n` 视频流平均 **≈ 41 FPS** |
 | Rust 推理 | 基于 `ort` + `image`，release 模式基准 **≈ 61.7 FPS**（`yolo11n`，pre 7.1ms / infer 8.8ms / post 0.3ms） |
-| 后端服务 | FastAPI，默认加载官方 `yolo26s` @640（COCO mAP50-95 48.6，CPU 单帧 ≈ 90–200ms）；可显式切回更轻量的 `yolo11n`（热态单帧 ≈ 30ms） |
 | 检出效果（同一张图） | `yolo11n` 7 框、person 最高 0.57 → `yolo26s` **8 框**、person **0.75**，并多检出 bottle / wine glass / giraffe / oven |
-| 本地摄像头画框（主线） | `inference_python/realtime.py` 打开摄像头，`result.plot()` 直接画框 + `cv2.imshow` 显示，坐标一比一、无偏移 |
-| Web / 桌面（可选·已不推荐） | 曾用 FastAPI + WebSocket 把能力接入 Vue3 / Electron；因浏览器 canvas 坐标换算导致检测框偏移，已不再作为主线，代码保留供参考 |
+| 本地摄像头画框（主线交付） | `inference_python/realtime.py` 打开摄像头，`result.plot()` 直接画框 + `cv2.imshow` 显示，坐标一比一、无偏移 |
 
 > 全部在 **无 CUDA、纯 CPU**（Intel i7-13650HX，Intel 核显）环境下完成。
 
@@ -56,7 +54,7 @@
 
 1. **ONNX 作为"中间语言"**：训练用 PyTorch，但推理要跨语言（Python / Rust）。ONNX 是这条链路上被所有主流运行时广泛支持的格式，因此把"训练框架"和"推理框架"解耦。
 2. **Python 先验证、Rust 再优化**：先用最少代码验证"模型导出是否正确、后处理逻辑是否对齐"，确认正确性后再做性能优化。避免一上来就用 Rust 写一坨难调试的代码。
-3. **实时画框优先在本地进程内完成**：检测与画框放在同一个进程里（Python 直接 `cv2.imshow`、Rust 直接 `imageproc` 输出），检测框坐标与显示帧**一比一**，不经过任何坐标换算，从根本上避免"框偏移"。服务化（FastAPI + Web）虽能复用一份推理逻辑，但浏览器 canvas 的缩放/留白换算会引入框偏移，故仅作可选方案保留。
+3. **实时画框优先在本地进程内完成**：检测与画框放在同一个进程里（Python 直接 `cv2.imshow`、Rust 直接 `imageproc` 输出），检测框坐标与显示帧**一比一**，不经过任何坐标换算，从根本上避免"框偏移"。服务化（FastAPI + Web）虽能复用一份推理逻辑，但浏览器 canvas 的缩放/留白换算会引入框偏移，故**最终将 Web / 桌面接入方案废弃移除**。
 
 ### 3.2 为什么选 COCO128 + YOLO11n
 
@@ -68,7 +66,7 @@
 
 ### 3.3 为什么把模型导出成 ONNX
 
-- **跨语言**：Rust（`ort`）、Python（`onnxruntime`）、后端都直接吃 ONNX，无需各自带一套 PyTorch。
+- **跨语言**：Rust（`ort`）、Python（`onnxruntime`）都直接吃 ONNX，无需各自带一套 PyTorch。
 - **性能**：ONNX Runtime 的图优化 + 算子融合在 CPU 上通常比直接跑 PyTorch 更快，也更适合部署。
 - **固定尺寸 + 简化**：导出时 `dynamic=False` 固定输入尺寸（官方模型用 `640×640`）、`simplify=True` 去掉冗余算子，让推理路径最短。
 - **权重选型**：默认导出**官方预训练权重**（全 COCO 80 类）而非自训练 `best.pt`——后者仅 128 张图微调，识别明显偏弱。默认选官方 `yolo26s` @640（COCO mAP50-95 48.6，CPU 单帧 ≈90–200ms，精度显著优于 `yolo11n` 的 39.5）；需要更高帧率时可显式指定更轻量的 `yolo11n`（≈30ms），需要更高精度可选 `yolo26m/l/x`（详见工程日志阶段十二）。
@@ -100,13 +98,15 @@ Rust 版刻意做到：**letterbox 预处理 → 模型推理 → 解码/YOLO �
 - **链路更长、变量更多**：抓帧 → JPEG 压缩 → WebSocket 传输 → 服务端推理 → 回传 → 前端重绘，任一环节的尺寸/比例处理不一致都会叠加误差，调试成本高。
 - **与目标不匹配**：本项目核心是"把检测结果直观地看在框里"，本地窗口已经足够，无需引入浏览器这一层复杂度。
 
-当前主线（推荐）：`inference_python/realtime.py --source 0` 直接看框；性能对照可用 Rust 版。
+当前主线：`inference_python/realtime.py --source 0` 直接看框；性能对照可用 Rust 版。
 
-**当初的 Web / 桌面设计（供参考，已不推荐）**：
+**当初的 Web / 桌面设计（已废弃移除，仅存记录）**：
 
 - **Web**：Vue3 + Vite，核心流程是"`getUserMedia` 抓帧 → WebSocket 发二进制 JPEG → 收到框后画到 canvas"。
 - **实时通信选 WebSocket**：视频流是持续高频小包，长连接比每帧 HTTP 省握手开销。
 - **桌面选 Electron**：可零改动复用同一份 `web/dist`，并用 Node 的 `child_process` 顺手拉起 Python 后端。
+
+> 上述 `server/`（FastAPI）、`web/`（Vue3）、`desktop/`（Electron）目录**已从仓库删除**。
 
 ---
 
@@ -126,20 +126,9 @@ flowchart LR
     M --> F[Rust 推理<br/>inference_rust / ort]
     E --> J[本地摄像头实时画框<br/>cv2.imshow · 坐标一比一]
     F --> K[本地画框输出<br/>imageproc]
-
-    M -. 可选·已不推荐 .-> G[FastAPI 服务<br/>server/app.py]
-    G -. HTTP /api/detect .-> H[Web 前端<br/>Vue3 + Vite]
-    G -. WS /ws/detect .-> H
-    H -.-> I[Electron 桌面端<br/>desktop]
 ```
 
-**主线（推荐）**：`inference_python/realtime.py --source 0` —— 摄像头实时画框，检测框直接画在原始帧上，坐标无偏移。
-
-**推理服务接口（可选·已不推荐）**
-
-- `GET  /api/health`：健康检查
-- `POST /api/detect`：上传单张图片 → JSON 检测结果
-- `WS   /ws/detect`：持续推送 JPEG 帧 → 逐帧返回 JSON 检测结果
+**主线**：`inference_python/realtime.py --source 0` —— 摄像头实时画框，检测框直接画在原始帧上，坐标无偏移。
 
 ---
 
@@ -166,18 +155,6 @@ yolo/
 │     ├─ postprocess.rs      #   解码 + NMS
 │     ├─ draw.rs             #   画框 / 写标签
 │     └─ detector.rs         #   Detector：ONNX session 封装
-├─ server/                   # 【可选·已不推荐】FastAPI 推理服务（HTTP + WebSocket）
-│  ├─ app.py                 #   create_app 组装（CORS / 路由 / 启动钩子）
-│  ├─ routes.py              #   /api/health、/api/detect、/ws/detect
-│  ├─ detector.py            #   Detector 单例与加载
-│  ├─ schemas.py             #   请求 / 响应契约
-│  └─ config.py              #   默认推理参数与 CORS 白名单
-├─ web/                      # 【可选·已不推荐】Vue3 + Vite 前端（摄像头实时画框）
-│  └─ src/
-│     ├─ api.js              #   唯一通信入口（HTTP + WebSocket）
-│     ├─ App.vue             #   UI 组织与订阅
-│     └─ composables/        #   采集+WS 订阅 / 画框坐标换算
-├─ desktop/                  # 【可选·已不推荐】Electron 桌面端（内嵌 web/dist）
 ├─ models/                   # 导出的 ONNX（.gitignore，用 download_weights.py 生成）
 ├─ datasets/                 # coco128.yaml（图片数据 .gitignore，可自动下载）
 ├─ runs/                     # 训练/推理输出（权重与演示帧 .gitignore）
@@ -188,8 +165,7 @@ yolo/
 
 ## 六、快速开始
 
-> **主线**：完成第 1–3 步后，直接跑 `python inference_python/realtime.py --source 0` 即可看到本地摄像头实时画框（**推荐**）。
-> 第 5–7 步（后端服务 / Web / 桌面端）为**可选·已不推荐**，仅作参考。
+> **主线**：跑完第 1–3 步后，直接 `python inference_python/realtime.py --source 0` 即可看到本地摄像头实时画框。
 >
 > 建议在仓库根目录执行 Python 相关命令（脚本内部按 `__file__` 定位根目录，但为与 `coco128.yaml` 保持一致仍推荐如此）。
 
@@ -198,7 +174,7 @@ yolo/
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install ultralytics onnx onnxruntime opencv-python fastapi "uvicorn[standard]" python-multipart
+pip install ultralytics onnx onnxruntime opencv-python
 ```
 
 Rust 侧需要 stable 工具链（本项目在 `stable-x86_64-pc-windows-gnu` 上验证）。
@@ -259,31 +235,6 @@ $env:ORT_DYLIB_PATH = "..\.venv\Lib\site-packages\onnxruntime\capi\onnxruntime.d
 > 注意：`--out` 是**全局参数**，需写在子命令之前，例如
 > `yolo-infer.exe --out runs\detect\rust image ..\x.jpg`。
 
-### 5. 启动推理服务（可选·已不推荐）
-
-```powershell
-python -m uvicorn server.app:app --host 127.0.0.1 --port 8000
-# 健康检查：curl http://127.0.0.1:8000/api/health
-```
-
-### 6. Web 前端（可选·已不推荐）
-
-```powershell
-cd web
-npm install
-npm run dev      # http://127.0.0.1:5173
-npm run build    # 产出 web/dist，供桌面端加载
-```
-
-### 7. 桌面端（Electron）（可选·已不推荐）
-
-```powershell
-cd desktop
-npm install
-npm start        # 生产模式：加载 ../web/dist，并自动拉起 Python 后端
-npm run dev      # 开发模式：连接 Vite 开发服务器
-```
-
 ---
 
 ## 七、各环节实现要点（思路层面）
@@ -292,20 +243,16 @@ npm run dev      # 开发模式：连接 Vite 开发服务器
 - **导出**：`opset=12 + imgsz=640（官方）/416（自训练）+ simplify=True + dynamic=False`，并统一复制到 `models/` 便于其他模块引用；权重按"官方 yolo26s > 官方 yolo11n > 自训练"优先级自动选择。
 - **Python 推理（主线）**：统一用 `model.predict(stream=...)` 处理摄像头/视频流，`result.plot()` 直接把框画在原始帧上并用 `cv2.imshow` 显示（坐标一比一、无偏移），滑动平均估算 FPS；同一份代码可切 `--engine pt|onnx`。
 - **Rust 推理**：手写 letterbox 预处理 → `ort` 推理 → 解码（YOLOv8/11 无 objectness，取 80 类最大分）→ 类别内 NMS → `imageproc` 画框；`ort` 会话复用，避免每帧重复加载模型。
-- **后端（可选·已不推荐）**：模型在 `startup` 时加载一次；推理是 CPU 密集操作，用 `asyncio.to_thread` 放到线程池，避免阻塞事件循环；开启 CORS 方便前端开发。
-- **前端（可选·已不推荐）**：`getUserMedia(1280×720)` 抓帧 → `canvas.toBlob` 压成 JPEG(0.85) → WebSocket 发送 ArrayBuffer；收到结果按 `object-fit: contain` 的比例换算坐标再画框——**正是这一步的换算导致框偏移**，故不再作为主线。
-- **桌面端（可选·已不推荐）**：启动时先 `healthCheck()`，后端没起来才 `spawn` uvicorn，并轮询等待就绪；生产环境用 `loadFile(web/dist/index.html)`（Vite `base:'./'` 保证 `file://` 下资源可加载）；退出时 kill 后端子进程。
 
 ---
 
 ## 八、已知限制与后续优化
 
-- **不走 Web 的原因**：浏览器 canvas 需按 `object-fit: contain` 做缩放/留白换算，容器比例与视频流不一致时检测框会整体偏移；本地进程内画框（OpenCV 原生窗口）坐标一比一、无偏移，故**主线回归本地摄像头画框**，Web / Electron 保留为可选方案（代码未删）。
+- **为什么不做 Web**：浏览器 canvas 需按 `object-fit: contain` 做缩放/留白换算，容器比例与视频流不一致时检测框会整体偏移；本地进程内画框（OpenCV 原生窗口）坐标一比一、无偏移。故**主线采用本地摄像头画框**，原有的 FastAPI / Vue3 / Electron 接入代码已废弃移除。
 - **训练规模小**：COCO128 仅用于跑通流程，真实业务需换更大数据集并做数据增强调参。
 - **自训练模型识别弱**：COCO128 仅 128 张图 / 30 轮，召回 ≈ 0.65（约 1/3 目标漏检）；故**默认改用官方全 COCO 预训练权重**（最终用精度更高的 `yolo26s` @640，CPU 单帧 ≈90–200ms；帧率敏感场景可切回更轻量的 `yolo11n`），自训练产物仅作流程对照。
 - **纯 CPU 推理**：如需更高吞吐可换 TensorRT / OpenVINO / DirectML，或启用 INT8 量化。
 - **Rust 关键路径已优化**（LTO、`codegen-units=1`、`opt-level=3`），但摄像头采集目前仍靠 `nokhwa`，跨平台兼容性可再打磨。
-- **服务端并发**：当前单模型串行推理，高并发场景可考虑多实例/批处理。
 
 ---
 

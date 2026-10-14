@@ -96,8 +96,8 @@ def main() -> None:
         if not args.no_onnx:
             export_onnx(pt, args.imgsz, args.opset, args.force)
 
-    print("\n权重已就绪，可启动推理服务：")
-    print("  python -m uvicorn server.app:app --host 127.0.0.1 --port 8000")
+    print("\n权重已就绪，可启动本地摄像头实时推理：")
+    print("  python inference_python/realtime.py --source 0")
 
 
 if __name__ == "__main__":

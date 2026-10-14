@@ -1,7 +1,6 @@
 """项目级配置：仓库路径、运行环境与权重解析，供所有 Python 入口共用。
 
 ultralytics 需要在被导入前就拿到 `YOLO_CONFIG_DIR`，因此本模块在被导入时即完成设置。
-`server` 包直接 `from project_config import ...` 即可（服务从仓库根目录启动）；
 `training/` 与 `inference_python/` 下的脚本以文件方式运行，其 `sys.path` 首项是脚本
 所在目录，需先手动把仓库根目录加入 `sys.path` 再导入本模块。
 """
